@@ -1,0 +1,14 @@
+---
+- hosts: tag_controller
+  tasks:
+    - name: Create encryption configuration file
+      connection: local
+      run_once: True
+      template:
+        src: templates/encryption-config.yaml
+        dest: files/encryption-config.yaml
+
+    - name: Copy encryption configuration file to controller nodes
+      copy:
+        src: files/encryption-config.yaml
+        dest: "{{ ansible_env.HOME }}"

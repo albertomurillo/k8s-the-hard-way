@@ -1,0 +1,59 @@
+---
+- hosts: tag_controller
+  tasks:
+    - name: Check if etcd is installed
+      stat: path=/usr/local/bin/etcd
+      register: ETCD_BINARY
+
+    - name: Download etcd
+      unarchive:
+        remote_src: yes
+        src: https://github.com/coreos/etcd/releases/download/v3.2.11/etcd-v3.2.11-linux-amd64.tar.gz
+        dest: "{{ ansible_env.HOME }}"
+      when: not ETCD_BINARY.stat.exists
+
+    - name: Install etcd
+      become: yes
+      copy:
+        remote_src: yes
+        src: "{{ ansible_env.HOME }}/etcd-v3.2.11-linux-amd64/{{ item }}"
+        dest: /usr/local/bin/{{ item }}
+        mode: 0755
+      with_items:
+        - etcd
+        - etcdctl
+      when: not ETCD_BINARY.stat.exists
+
+    - name: Create etcd directories
+      become: yes
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - /etc/etcd
+        - /var/lib/etcd
+
+    - name: Copy certificates
+      become: yes
+      copy:
+        remote_src: yes
+        src: "{{ ansible_env.HOME }}/{{ item }}"
+        dest: /etc/etcd
+      with_items:
+        - ca.pem
+        - kubernetes-key.pem
+        - kubernetes.pem
+
+    - name: Create etcd.service
+      become: yes
+      template:
+        src: templates/etcd.service
+        dest: /etc/systemd/system
+
+    - name: Start etcd
+      become: yes
+      systemd:
+        name: etcd.service
+        daemon_reload: yes
+        enabled: yes
+        state: started

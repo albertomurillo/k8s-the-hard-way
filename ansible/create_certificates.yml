@@ -1,0 +1,87 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Generate CA certificate
+      shell: "cfssl gencert -initca ../files/ca-csr.json | cfssljson -bare ca"
+      args:
+        chdir: certs
+        creates: ca-key.pem
+
+    - name: Create admin client certificate
+      shell: >
+        cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=../files/ca-config.json
+        -profile=kubernetes ../files/admin-csr.json | cfssljson -bare admin
+      args:
+        chdir: certs
+        creates: admin-key.pem
+
+    - name: Generate kube-proxy client certificate
+      shell: >
+        cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=../files/ca-config.json
+        -profile=kubernetes ../files/kube-proxy-csr.json | cfssljson -bare kube-proxy
+      args:
+        chdir: certs
+        creates: kube-proxy-key.pem
+
+    - name: Get compute region
+      shell: gcloud config get-value compute/region
+      register: COMPUTE_REGION
+      changed_when: false
+
+    - name: Get static ip address
+      shell: >
+        gcloud compute addresses describe kubernetes-the-hard-way
+        --region {{ COMPUTE_REGION.stdout }}
+        --format 'value(address)'
+      register: KUBERNETES_PUBLIC_ADDRESS
+      changed_when: false
+
+    - name: Generate Kubernetes API Server certificate
+      shell: >
+        cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=../files/ca-config.json
+        -hostname=10.32.0.1,10.240.0.10,10.240.0.11,10.240.0.12,{{ KUBERNETES_PUBLIC_ADDRESS.stdout }},127.0.0.1,kubernetes.default
+        -profile=kubernetes ../files/kubernetes-csr.json | cfssljson -bare kubernetes
+      args:
+        chdir: certs
+        creates: kubernetes-key.pem
+
+- hosts: tag_worker
+  connection: local
+  tasks:
+    - name: Create certificate signing request for workers
+      template:
+        src: worker-csr.json
+        dest: files/{{ gce_name }}-csr.json
+
+    - name: Generate certificate for workers
+      shell: >
+        cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=../files/ca-config.json
+        -hostname={{ gce_name }},{{ gce_public_ip }},{{ gce_private_ip }}
+        -profile=kubernetes ../files/{{ gce_name }}-csr.json | cfssljson -bare {{ gce_name }}
+      args:
+        chdir: certs
+        creates: "{{ gce_name }}-key.pem"
+
+- hosts: tag_worker
+  tasks:
+    - name: Copy appropiate certificates to each worker instance
+      copy:
+        src: "certs/{{ item }}"
+        dest: "{{ ansible_env.HOME }}"
+      with_items:
+        - ca.pem
+        - "{{ gce_name }}-key.pem"
+        - "{{ gce_name }}.pem"
+
+- hosts: tag_controller
+  tasks:
+    - name: Copy appropiate certificates to each controller instance
+      copy:
+        src: "certs/{{ item }}"
+        dest: "{{ ansible_env.HOME }}"
+      with_items:
+        - ca.pem
+        - ca-key.pem
+        - kubernetes-key.pem
+        - kubernetes.pem
