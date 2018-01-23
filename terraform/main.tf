@@ -1,7 +1,7 @@
 provider "google" {
   credentials = "${file("../account.json")}"
-  project     = "${project_id}"
-  region      = "${region}"
+  project     = "${var.project_id}"
+  region      = "${var.region}"
 }
 
 resource "google_compute_network" "default" {
@@ -58,7 +58,7 @@ resource "google_compute_instance" "controller" {
   count          = 3
   name           = "controller-${count.index}"
   machine_type   = "n1-standard-1"
-  zone           = "${zone}"
+  zone           = "${var.zone}"
   can_ip_forward = "true"
 
   boot_disk {
@@ -92,7 +92,7 @@ resource "google_compute_instance" "worker" {
   count          = 3
   name           = "worker-${count.index}"
   machine_type   = "n1-standard-1"
-  zone           = "${zone}"
+  zone           = "${var.zone}"
   can_ip_forward = "true"
 
   boot_disk {

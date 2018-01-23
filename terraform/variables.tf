@@ -1,9 +1,9 @@
-variable project_id {}
+variable "project_id" {}
 
-variable region {
+variable "region" {
   default = "us-west1"
 }
 
-variable zone {
+variable "zone" {
   default = "us-west1-a"
 }

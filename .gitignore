@@ -3,4 +3,4 @@ ansible/*.retry
 ansible/gce.ini
 terraform/.terraform/
 terraform/terraform.tfstate*
-terraform/variables.tfvars
+terraform/terraform.tfvars
