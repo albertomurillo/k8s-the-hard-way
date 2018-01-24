@@ -7,4 +7,4 @@ This repository holds terraform and ansible scripts to deploy k8s on google clou
 Create the following files
 * Create missing [gce.ini](https://github.com/ansible/ansible/blob/devel/contrib/inventory/gce.ini) file
 * Create missing [accounts.json](https://www.terraform.io/docs/providers/google/index.html#authentication-json-file) file
-* Create missing terraform/variables.tfvars
+* Create missing terraform/terraform.tfvars
