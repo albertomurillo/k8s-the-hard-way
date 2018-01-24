@@ -1,5 +1,10 @@
 account.json
 ansible/*.retry
+ansible/certs
+ansible/files/*.kubeconfig
+ansible/files/*.yaml
+ansible/files/encryption_key
+ansible/files/worker-*-csr.json
 ansible/gce.ini
 terraform/.terraform/
 terraform/terraform.tfstate*
