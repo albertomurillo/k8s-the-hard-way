@@ -4,3 +4,4 @@
 - import_playbook: create_encryption_key.yml
 - import_playbook: bootstrap_etcd.yml
 - import_playbook: install_kubernetes.yml
+- import_playbook: install_kubernetes_nodes.yml

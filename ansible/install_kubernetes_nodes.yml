@@ -1,0 +1,105 @@
+---
+- hosts: tag_worker
+  tasks:
+    - name: Install socat
+      become: yes
+      package:
+        name: socat
+        state: present
+
+    - name: Create kubernetes directories
+      become: yes
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - /etc/cni/net.d
+        - /opt/cni/bin
+        - /var/lib/kube-proxy
+        - /var/lib/kubelet
+        - /var/lib/kubernetes
+        - /var/run/kubernetes
+
+    - name: Check if cni plugins are installed
+      stat: path=/opt/cni/bin/flannel
+      register: flannel_plugin
+
+    - name: Install cni plugins
+      become: yes
+      unarchive:
+        remote_src: yes
+        src: https://github.com/containernetworking/plugins/releases/download/v0.6.0/cni-plugins-amd64-v0.6.0.tgz
+        dest: /opt/cni/bin/
+      when: not flannel_plugin.stat.exists
+
+    - name: Check if cri-containerd is installed
+      stat: path=/usr/local/bin/cri-containerd
+      register: cri_containerd
+
+    - name: Install cri-containerd
+      become: yes
+      unarchive:
+        remote_src: yes
+        src: https://github.com/kubernetes-incubator/cri-containerd/releases/download/v1.0.0-beta.0/cri-containerd-1.0.0-beta.0.linux-amd64.tar.gz
+        dest: /
+      when: not cri_containerd.stat.exists
+
+    - name: Download kubernetes worker binaries
+      become: yes
+      get_url:
+        url: "https://storage.googleapis.com/kubernetes-release/release/v1.9.0/bin/linux/amd64/{{ item }}"
+        dest: /usr/local/bin/{{ item }}
+        mode: 755
+      with_items:
+        - kube-proxy
+        - kubectl
+        - kubelet
+
+    - name: Configure cni
+      become: yes
+      template:
+        src: templates/{{ item }}
+        dest: "/etc/cni/net.d/{{ item }}"
+      with_items:
+        - 10-bridge.conf
+        - 99-loopback.conf
+
+    - name: Configure kubelet
+      become: yes
+      copy:
+        remote_src: yes
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - src: "{{ ansible_env.HOME }}/{{ gce_name }}-key.pem"
+          dest: /var/lib/kubelet/
+        - src: "{{ ansible_env.HOME }}/{{ gce_name }}.pem"
+          dest: /var/lib/kubelet/
+        - src: "{{ ansible_env.HOME }}/{{ gce_name }}.kubeconfig"
+          dest: /var/lib/kubelet/kubeconfig
+        - src: "{{ ansible_env.HOME }}/ca.pem"
+          dest: /var/lib/kubernetes/
+        - src: "{{ ansible_env.HOME }}/kube-proxy.kubeconfig"
+          dest: /var/lib/kube-proxy/kubeconfig
+
+    - name: Install kubernetes worker services
+      become: yes
+      template:
+        src: templates/{{ item }}
+        dest: /etc/systemd/system/
+      with_items:
+        - kube-proxy.service
+        - kubelet.service
+
+    - name: Start services
+      become: yes
+      systemd:
+        name: "{{ item }}"
+        daemon_reload: yes
+        enabled: yes
+        state: started
+      with_items:
+        - containerd
+        - cri-containerd
+        - kube-proxy
+        - kubelet
