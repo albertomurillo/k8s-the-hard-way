@@ -8,5 +8,5 @@ resources:
       - aescbc:
           keys:
             - name: key1
-              secret: "{{ lookup('password', 'files/encryption_key') }}"
+              secret: "{{ lookup('password', 'files/encryption_key length=32') | b64encode }}"
       - identity: {}
