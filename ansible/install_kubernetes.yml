@@ -1,0 +1,65 @@
+---
+- hosts: tag_controller
+  tasks:
+    - name: Download kubernetes controller binaries
+      become: yes
+      get_url:
+        url: "https://storage.googleapis.com/kubernetes-release/release/v1.9.0/bin/linux/amd64/{{ item }}"
+        dest: /usr/local/bin/{{ item }}
+        mode: 755
+      with_items:
+        - kube-apiserver
+        - kube-controller-manager
+        - kube-scheduler
+        - kubectl
+
+    - name: Create kubernetes directories
+      become: yes
+      file:
+        path: /var/lib/kubernetes
+        state: directory
+
+    - name: Copy certificates
+      become: yes
+      copy:
+        remote_src: yes
+        src: "{{ ansible_env.HOME }}/{{ item }}"
+        dest: /var/lib/kubernetes
+      with_items:
+        - ca.pem
+        - ca-key.pem
+        - kubernetes-key.pem
+        - kubernetes.pem
+        - encryption-config.yaml
+
+    - name: Install kubernetes controller services
+      become: yes
+      template:
+        src: templates/{{ item }}
+        dest: /etc/systemd/system/
+      with_items:
+        - kube-apiserver.service
+        - kube-controller-manager.service
+        - kube-scheduler.service
+
+    - name: Start services
+      become: yes
+      systemd:
+        name: "{{ item }}"
+        daemon_reload: yes
+        enabled: yes
+        state: started
+      with_items:
+        - kube-apiserver.service
+        - kube-controller-manager.service
+        - kube-scheduler.service
+
+- hosts: tag_controller
+  tasks:
+    - name: Create kube-apiserver-to-kubelet ClusterRole
+      run_once: true
+      shell: kubectl apply -f -
+      args:
+        stdin: "{{ lookup('file', 'files/resources/clusterrole-kube-apiserver-to-kubelet.yml') }}"
+      register: clusterrole
+      changed_when: "'created' in clusterrole.stdout"

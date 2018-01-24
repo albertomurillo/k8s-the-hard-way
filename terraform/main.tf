@@ -121,3 +121,21 @@ resource "google_compute_instance" "worker" {
 
   tags = ["kubernetes-the-hard-way", "worker"]
 }
+
+resource "google_compute_target_pool" "default" {
+  name = "kubernetes-target-pool"
+
+  instances = [
+    "${var.zone}/controller-0",
+    "${var.zone}/controller-1",
+    "${var.zone}/controller-2",
+  ]
+}
+
+resource "google_compute_forwarding_rule" "default" {
+  name       = "kubernetes-forwarding-rule"
+  ip_address = "${google_compute_address.default.self_link}"
+  port_range = "6443"
+  target     = "${google_compute_target_pool.default.self_link}"
+  region     = "${var.region}"
+}
