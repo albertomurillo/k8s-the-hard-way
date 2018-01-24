@@ -2,6 +2,11 @@
 - hosts: localhost
   connection: local
   tasks:
+    - name: Create certs directory
+      file:
+        path: certs
+        state: directory
+
     - name: Generate CA certificate
       shell: "cfssl gencert -initca ../files/ca-csr.json | cfssljson -bare ca"
       args:
