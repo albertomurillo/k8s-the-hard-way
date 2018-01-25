@@ -6,3 +6,4 @@
 - import_playbook: install_kubernetes.yml
 - import_playbook: install_kubernetes_nodes.yml
 - import_playbook: configure_kubectl.yml
+- import_playbook: deploy_dns_addon.yml

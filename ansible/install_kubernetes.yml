@@ -54,10 +54,9 @@
         - kube-controller-manager.service
         - kube-scheduler.service
 
-- hosts: tag_controller
+- hosts: controller-0
   tasks:
     - name: Create kube-apiserver-to-kubelet ClusterRole
-      run_once: true
       shell: kubectl apply -f -
       args:
         stdin: "{{ lookup('file', 'files/resources/clusterrole-kube-apiserver-to-kubelet.yml') }}"

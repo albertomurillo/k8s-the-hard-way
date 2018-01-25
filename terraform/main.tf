@@ -134,8 +134,18 @@ resource "google_compute_target_pool" "default" {
 
 resource "google_compute_forwarding_rule" "default" {
   name       = "kubernetes-forwarding-rule"
-  ip_address = "${google_compute_address.default.self_link}"
+  ip_address = "${google_compute_address.default.address}"
   port_range = "6443"
   target     = "${google_compute_target_pool.default.self_link}"
   region     = "${var.region}"
+}
+
+resource "google_compute_route" "default" {
+  count       = 3
+  name        = "kubernetes-route-10-200-${count.index}-0-24"
+  dest_range  = "10.200.${count.index}.0/24"
+  network     = "${google_compute_network.default.self_link}"
+  next_hop_ip = "10.240.0.2${count.index}"
+  priority    = 1000
+  depends_on  = ["google_compute_subnetwork.default"]
 }

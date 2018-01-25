@@ -1,0 +1,7 @@
+---
+- hosts: controller-0
+  tasks:
+    - name: Deploy DNS Cluster Add-on
+      shell: kubectl apply -f https://storage.googleapis.com/kubernetes-the-hard-way/kube-dns.yaml
+      register: dns_addon
+      changed_when: "'created' in dns_addon.stdout"
