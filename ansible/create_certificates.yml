@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   connection: local
+  gather_facts: False
   tasks:
     - name: Create certs directory
       file:
@@ -53,6 +54,7 @@
 
 - hosts: tag_worker
   connection: local
+  gather_facts: False
   tasks:
     - name: Create certificate signing request for workers
       template:

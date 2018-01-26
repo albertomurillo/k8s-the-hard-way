@@ -1,5 +1,6 @@
 ---
 - hosts: controller-0
+  gather_facts: False
   tasks:
     - name: Deploy DNS Cluster Add-on
       shell: kubectl apply -f https://storage.googleapis.com/kubernetes-the-hard-way/kube-dns.yaml
