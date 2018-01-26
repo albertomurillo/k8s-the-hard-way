@@ -56,6 +56,14 @@
 
 - hosts: controller-0
   tasks:
+    - name: Wait for the apiserver to be running
+      uri:
+        url: http://localhost:8080/healthz
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 10
+
     - name: Create kube-apiserver-to-kubelet ClusterRole
       shell: kubectl apply -f -
       args:
